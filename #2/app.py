@@ -12,10 +12,9 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 METHODS = [
-    "Image Negative",  # <-- DITAMBAHKAN
+    "Image Negative",
     "Grayscale",
     "Histogram Equalization",
-    # "Adaptive Histogram Equalization (CLAHE)",  <-- DIHAPUS
     "Threshold (Binary)",
     "Gaussian Blur",
     "Median Blur",
@@ -32,10 +31,9 @@ METHODS = [
 ]
 
 METHOD_DESCRIPTIONS = {
-    "Image Negative": "Membalik nilai piksel (Invert)",  # <-- DITAMBAHKAN
+    "Image Negative": "Membalik nilai piksel (Invert)",
     "Grayscale": "Konversi gambar ke skala abu-abu",
     "Histogram Equalization": "Pemerataan histogram standar",
-    # "Adaptive Histogram Equalization (CLAHE)": "Pemerataan histogram adaptif",  <-- DIHAPUS
     "Threshold (Binary)": "Konversi ke gambar biner hitam-putih",
     "Gaussian Blur": "Blur dengan kernel Gaussian",
     "Median Blur": "Blur median untuk noise reduction",
@@ -121,7 +119,7 @@ class MainWindow(QMainWindow):
         main_layout = QHBoxLayout()
         main_widget.setStyleSheet("background-color: #f8f9fa;")
         
-        # Left Panel - Controls (DIPERLEBAR)
+        # Left Panel - Controls
         left_panel = QFrame()
         left_panel.setFixedWidth(420)
         left_panel.setStyleSheet("""
@@ -132,7 +130,7 @@ class MainWindow(QMainWindow):
             }
         """)
         
-        # Scroll area untuk left panel agar semua bisa di-scroll
+        # Scroll area untuk left panel
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("""
@@ -225,26 +223,11 @@ class MainWindow(QMainWindow):
         file_group.setLayout(file_layout)
         left_layout.addWidget(file_group)
         
-        # Processing Methods Group - DIPERBAIKI
+        # Processing Methods Group
         method_group = QGroupBox("⚙️ Processing Methods (16 Fitur)")
-        method_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                color: #495057;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                margin-top: 10px;
-                padding-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px 0 5px;
-                color: #343a40;
-            }
-        """)
+        method_group.setStyleSheet(file_group.styleSheet())
         method_layout = QVBoxLayout()
-        method_layout.setSpacing(10)  # ✅ Method yang benar (bukan setVerticalSpacing)
+        method_layout.setSpacing(10)
         method_layout.setContentsMargins(10, 15, 10, 10)
         
         # Label untuk deskripsi
@@ -263,7 +246,7 @@ class MainWindow(QMainWindow):
         self.desc_label.setWordWrap(True)
         method_layout.addWidget(self.desc_label)
         
-        # ListWidget untuk methods (GANTI DARI COMBOBOX)
+        # ListWidget untuk methods
         self.method_list = QListWidget()
         self.method_list.setMaximumHeight(250)
         self.method_list.setStyleSheet("""
@@ -307,23 +290,33 @@ class MainWindow(QMainWindow):
         self.method_list.setCurrentRow(0)
         method_layout.addWidget(self.method_list)
         
-        # Slider / param
-        self.param_slider = QSlider(Qt.Horizontal)
-        self.param_slider.setRange(1, 100)
-        self.param_slider.setValue(3)
-        self.param_slider.valueChanged.connect(lambda v: self.param_label.setText(str(v)))
-        self.param_label = QLabel(str(self.param_slider.value()))
-        self.param_label.setStyleSheet("font-weight: bold; color: #343a40;")
+        # Parameter Container - untuk menampung semua kontrol parameter
+        self.param_container = QWidget()
+        self.param_layout = QVBoxLayout(self.param_container)
+        self.param_layout.setSpacing(8)
+        self.param_layout.setContentsMargins(0, 0, 0, 0)
         
-        param_layout = QHBoxLayout()
-        param_label_text = QLabel("Parameter:")
-        param_label_text.setStyleSheet("color: #343a40; font-weight: bold;")
-        param_layout.addWidget(param_label_text)
-        param_layout.addWidget(self.param_slider)
-        param_layout.addWidget(self.param_label)
-        method_layout.addLayout(param_layout)
-
-        # Extra spin for threshold
+        # Kernel Size Parameter
+        self.kernel_widget = QWidget()
+        kernel_layout = QHBoxLayout(self.kernel_widget)
+        kernel_label = QLabel("Kernel Size:")
+        kernel_label.setStyleSheet("color: #343a40; font-weight: bold;")
+        self.kernel_slider = QSlider(Qt.Horizontal)
+        self.kernel_slider.setRange(1, 31)
+        self.kernel_slider.setValue(3)
+        self.kernel_value = QLabel("3")
+        self.kernel_value.setStyleSheet("font-weight: bold; color: #343a40;")
+        self.kernel_slider.valueChanged.connect(lambda v: self.kernel_value.setText(str(v)))
+        kernel_layout.addWidget(kernel_label)
+        kernel_layout.addWidget(self.kernel_slider)
+        kernel_layout.addWidget(self.kernel_value)
+        self.param_layout.addWidget(self.kernel_widget)
+        
+        # Threshold Parameter
+        self.thresh_widget = QWidget()
+        thresh_layout = QHBoxLayout(self.thresh_widget)
+        thresh_label = QLabel("Threshold:")
+        thresh_label.setStyleSheet("color: #343a40; font-weight: bold;")
         self.spin_thresh = QSpinBox()
         self.spin_thresh.setRange(0, 255)
         self.spin_thresh.setValue(127)
@@ -337,14 +330,47 @@ class MainWindow(QMainWindow):
                 font-weight: bold;
             }
         """)
-        thresh_layout = QHBoxLayout()
-        thresh_label = QLabel("Threshold:")
-        thresh_label.setStyleSheet("color: #343a40; font-weight: bold;")
         thresh_layout.addWidget(thresh_label)
         thresh_layout.addWidget(self.spin_thresh)
-        method_layout.addLayout(thresh_layout)
-
-        # Double spin for brightness/contrast
+        self.param_layout.addWidget(self.thresh_widget)
+        
+        # Canny Parameter
+        self.canny_widget = QWidget()
+        canny_layout = QHBoxLayout(self.canny_widget)
+        canny_label = QLabel("Canny Threshold:")
+        canny_label.setStyleSheet("color: #343a40; font-weight: bold;")
+        self.canny_slider = QSlider(Qt.Horizontal)
+        self.canny_slider.setRange(10, 300)
+        self.canny_slider.setValue(100)
+        self.canny_value = QLabel("100")
+        self.canny_value.setStyleSheet("font-weight: bold; color: #343a40;")
+        self.canny_slider.valueChanged.connect(lambda v: self.canny_value.setText(str(v)))
+        canny_layout.addWidget(canny_label)
+        canny_layout.addWidget(self.canny_slider)
+        canny_layout.addWidget(self.canny_value)
+        self.param_layout.addWidget(self.canny_widget)
+        
+        # Bilateral Filter Parameter
+        self.bilateral_widget = QWidget()
+        bilateral_layout = QHBoxLayout(self.bilateral_widget)
+        bilateral_label = QLabel("Diameter:")
+        bilateral_label.setStyleSheet("color: #343a40; font-weight: bold;")
+        self.bilateral_slider = QSlider(Qt.Horizontal)
+        self.bilateral_slider.setRange(5, 50)
+        self.bilateral_slider.setValue(9)
+        self.bilateral_value = QLabel("9")
+        self.bilateral_value.setStyleSheet("font-weight: bold; color: #343a40;")
+        self.bilateral_slider.valueChanged.connect(lambda v: self.bilateral_value.setText(str(v)))
+        bilateral_layout.addWidget(bilateral_label)
+        bilateral_layout.addWidget(self.bilateral_slider)
+        bilateral_layout.addWidget(self.bilateral_value)
+        self.param_layout.addWidget(self.bilateral_widget)
+        
+        # Brightness/Contrast Parameters
+        self.brightness_widget = QWidget()
+        brightness_layout = QHBoxLayout(self.brightness_widget)
+        bright_label = QLabel("Brightness:")
+        bright_label.setStyleSheet("color: #343a40; font-weight: bold;")
         self.spin_brightness = QDoubleSpinBox()
         self.spin_brightness.setRange(-100, 100)
         self.spin_brightness.setValue(0)
@@ -359,25 +385,43 @@ class MainWindow(QMainWindow):
                 font-weight: bold;
             }
         """)
-        bright_layout = QHBoxLayout()
-        bright_label = QLabel("Brightness:")
-        bright_label.setStyleSheet("color: #343a40; font-weight: bold;")
-        bright_layout.addWidget(bright_label)
-        bright_layout.addWidget(self.spin_brightness)
-        method_layout.addLayout(bright_layout)
-
+        brightness_layout.addWidget(bright_label)
+        brightness_layout.addWidget(self.spin_brightness)
+        self.param_layout.addWidget(self.brightness_widget)
+        
+        self.contrast_widget = QWidget()
+        contrast_layout = QHBoxLayout(self.contrast_widget)
+        contrast_label = QLabel("Contrast:")
+        contrast_label.setStyleSheet("color: #343a40; font-weight: bold;")
         self.spin_contrast = QDoubleSpinBox()
         self.spin_contrast.setRange(0.5, 3.0)
         self.spin_contrast.setValue(1.0)
         self.spin_contrast.setSingleStep(0.1)
         self.spin_contrast.setStyleSheet(self.spin_brightness.styleSheet())
-        contrast_layout = QHBoxLayout()
-        contrast_label = QLabel("Contrast:")
-        contrast_label.setStyleSheet("color: #343a40; font-weight: bold;")
         contrast_layout.addWidget(contrast_label)
         contrast_layout.addWidget(self.spin_contrast)
-        method_layout.addLayout(contrast_layout)
+        self.param_layout.addWidget(self.contrast_widget)
+        
+        # Sharpen Parameter
+        self.sharpen_widget = QWidget()
+        sharpen_layout = QHBoxLayout(self.sharpen_widget)
+        sharpen_label = QLabel("Sharpness Factor:")
+        sharpen_label.setStyleSheet("color: #343a40; font-weight: bold;")
+        self.sharpen_slider = QSlider(Qt.Horizontal)
+        self.sharpen_slider.setRange(50, 300)
+        self.sharpen_slider.setValue(100)
+        self.sharpen_value = QLabel("100")
+        self.sharpen_value.setStyleSheet("font-weight: bold; color: #343a40;")
+        self.sharpen_slider.valueChanged.connect(lambda v: self.sharpen_value.setText(str(v)))
+        sharpen_layout.addWidget(sharpen_label)
+        sharpen_layout.addWidget(self.sharpen_slider)
+        sharpen_layout.addWidget(self.sharpen_value)
+        self.param_layout.addWidget(self.sharpen_widget)
 
+        # Tambahkan container parameter ke layout utama
+        method_layout.addWidget(self.param_container)
+        
+        # Apply Button
         apply_btn = QPushButton("🚀 Apply Processing")
         apply_btn.setStyleSheet("""
             QPushButton {
@@ -476,16 +520,7 @@ class MainWindow(QMainWindow):
         self.lbl_result = QLabel("Processing result will appear here")
         self.lbl_result.setAlignment(Qt.AlignCenter)
         self.lbl_result.setFixedSize(400, 300)
-        self.lbl_result.setStyleSheet("""
-            QLabel {
-                border: 2px dashed #ced4da;
-                border-radius: 8px;
-                background-color: #f8f9fa;
-                color: #6c757d;
-                font-size: 14px;
-                font-weight: bold;
-            }
-        """)
+        self.lbl_result.setStyleSheet(self.lbl_orig.styleSheet())
         
         self.result_hist_canvas = HistogramCanvas(self, width=4, height=2)
         self.result_hist_canvas.setFixedSize(400, 200)
@@ -506,7 +541,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
         self.resize(1400, 950)
 
-        # initial control visibility
+        # Initial control visibility
         self.method_changed()
 
     def load_image(self):
@@ -571,48 +606,53 @@ class MainWindow(QMainWindow):
         # Update deskripsi
         self.desc_label.setText(METHOD_DESCRIPTIONS.get(method, ""))
         
-        # Hide all controls by default
-        self.param_slider.setEnabled(False)
-        self.spin_thresh.setEnabled(False)
-        self.spin_brightness.setEnabled(False)
-        self.spin_contrast.setEnabled(False)
+        # Sembunyikan semua parameter terlebih dahulu
+        self.kernel_widget.setVisible(False)
+        self.thresh_widget.setVisible(False)
+        self.canny_widget.setVisible(False)
+        self.bilateral_widget.setVisible(False)
+        self.brightness_widget.setVisible(False)
+        self.contrast_widget.setVisible(False)
+        self.sharpen_widget.setVisible(False)
         
-        if method in ("Gaussian Blur", "Median Blur", "Morphology (Open)", "Morphology (Close)"):
-            self.param_slider.setEnabled(True)
-            self.param_slider.setRange(1, 31)
-            self.param_slider.setValue(3)
-            self.param_label.setText(str(self.param_slider.value()))
+        # Tampilkan hanya parameter yang relevan
+        if method in ("Gaussian Blur", "Median Blur", "Morphology (Open)", 
+                     "Morphology (Close)", "Dilation", "Erosion"):
+            self.kernel_widget.setVisible(True)
+            self.kernel_slider.setRange(1, 31)
+            self.kernel_slider.setValue(3)
+            self.kernel_value.setText("3")
+            
         elif method == "Threshold (Binary)":
-            self.spin_thresh.setEnabled(True)
-        elif method in ("Canny Edge Detection", "Laplacian Edge Detection"):
-            self.param_slider.setEnabled(True)
-            self.param_slider.setRange(10, 300)
-            self.param_slider.setValue(100)
-        elif method == "Sobel Edge Detection":
-            self.param_slider.setEnabled(True)
-            self.param_slider.setRange(1, 10)
-            self.param_slider.setValue(1)
+            self.thresh_widget.setVisible(True)
+            self.spin_thresh.setValue(127)
+            
+        elif method == "Canny Edge Detection":
+            self.canny_widget.setVisible(True)
+            self.canny_slider.setRange(10, 300)
+            self.canny_slider.setValue(100)
+            self.canny_value.setText("100")
+            
         elif method == "Bilateral Filter":
-            self.param_slider.setEnabled(True)
-            self.param_slider.setRange(5, 50)
-            self.param_slider.setValue(9)
-        elif method in ("Dilation", "Erosion"):
-            self.param_slider.setEnabled(True)
-            self.param_slider.setRange(1, 20)
-            self.param_slider.setValue(3)
-        # elif method == "Adaptive Histogram Equalization (CLAHE)":  <-- DIHAPUS
-        #     self.param_slider.setEnabled(True)
-        #     self.param_slider.setRange(1, 40)
-        #     self.param_slider.setValue(2)
-        elif method == "Sharpen / Contrast":
-            self.param_slider.setEnabled(True)
-            self.param_slider.setRange(50, 300)
-            self.param_slider.setValue(100)
+            self.bilateral_widget.setVisible(True)
+            self.bilateral_slider.setRange(5, 50)
+            self.bilateral_slider.setValue(9)
+            self.bilateral_value.setText("9")
+            
         elif method == "Brightness/Contrast Adjustment":
-            self.spin_brightness.setEnabled(True)
-            self.spin_contrast.setEnabled(True)
+            self.brightness_widget.setVisible(True)
+            self.contrast_widget.setVisible(True)
+            self.spin_brightness.setValue(0)
+            self.spin_contrast.setValue(1.0)
+            
+        elif method == "Sharpen / Contrast":
+            self.sharpen_widget.setVisible(True)
+            self.sharpen_slider.setRange(50, 300)
+            self.sharpen_slider.setValue(100)
+            self.sharpen_value.setText("100")
         
-        # "Image Negative" tidak ada di sini, jadi otomatis tidak ada parameter (sesuai)
+        # Untuk metode tanpa parameter (Image Negative, Grayscale, Histogram Equalization, 
+        # Sobel Edge Detection, Laplacian Edge Detection) - tidak menampilkan parameter apapun
 
     def apply_method(self):
         if self.orig is None:
@@ -620,125 +660,124 @@ class MainWindow(QMainWindow):
         method = self.method_list.currentItem().text() if self.method_list.currentItem() else ""
         img = self.orig.copy()
         
-        if method == "Image Negative":  # <-- DITAMBAHKAN
-            inverted = cv2.bitwise_not(img)
-            self.result = inverted
+        try:
+            if method == "Image Negative":
+                inverted = cv2.bitwise_not(img)
+                self.result = inverted
+                
+            elif method == "Grayscale":
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                self.result = gray
             
-        elif method == "Grayscale":
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            self.result = gray
-        
-        elif method == "Histogram Equalization":
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            eq = cv2.equalizeHist(gray)
-            self.result = eq
-        
-        # elif method == "Adaptive Histogram Equalization (CLAHE)":  <-- DIHAPUS
-        #     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        #     clip_limit = float(self.param_slider.value())
-        #     clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8, 8))
-        #     eq = clahe.apply(gray)
-        #     self.result = eq
-        
-        elif method == "Threshold (Binary)":
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            t = int(self.spin_thresh.value())
-            _, th = cv2.threshold(gray, t, 255, cv2.THRESH_BINARY)
-            self.result = th
-        
-        elif method == "Gaussian Blur":
-            k = int(self.param_slider.value())
-            if k % 2 == 0:
-                k += 1
-            blur = cv2.GaussianBlur(img, (k, k), 0)
-            self.result = blur
-        
-        elif method == "Median Blur":
-            k = int(self.param_slider.value())
-            if k % 2 == 0:
-                k += 1
-            med = cv2.medianBlur(img, k)
-            self.result = med
-        
-        elif method == "Bilateral Filter":
-            d = int(self.param_slider.value())
-            bilateral = cv2.bilateralFilter(img, d, 75, 75)
-            self.result = bilateral
-        
-        elif method == "Canny Edge Detection":
-            v = int(self.param_slider.value())
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            edges = cv2.Canny(gray, v//2, v)
-            self.result = edges
-        
-        elif method == "Sobel Edge Detection":
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            k = int(self.param_slider.value())
-            sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=k)
-            sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=k)
-            sobel = np.sqrt(sobelx**2 + sobely**2)
-            sobel = np.uint8(255 * sobel / np.max(sobel))
-            self.result = sobel
-        
-        elif method == "Laplacian Edge Detection":
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            laplacian = cv2.Laplacian(gray, cv2.CV_64F)
-            laplacian = np.uint8(np.absolute(laplacian))
-            self.result = laplacian
-        
-        elif method == "Morphology (Open)":
-            k = int(self.param_slider.value())
-            if k < 1: k = 1
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k, k))
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            _, th = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-            opened = cv2.morphologyEx(th, cv2.MORPH_OPEN, kernel)
-            self.result = opened
-        
-        elif method == "Morphology (Close)":
-            k = int(self.param_slider.value())
-            if k < 1: k = 1
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k, k))
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            _, th = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-            closed = cv2.morphologyEx(th, cv2.MORPH_CLOSE, kernel)
-            self.result = closed
-        
-        elif method == "Dilation":
-            k = int(self.param_slider.value())
-            if k < 1: k = 1
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k, k))
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            _, th = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-            dilated = cv2.dilate(th, kernel, iterations=1)
-            self.result = dilated
-        
-        elif method == "Erosion":
-            k = int(self.param_slider.value())
-            if k < 1: k = 1
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k, k))
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            _, th = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-            eroded = cv2.erode(th, kernel, iterations=1)
-            self.result = eroded
-        
-        elif method == "Brightness/Contrast Adjustment":
-            brightness = float(self.spin_brightness.value())
-            contrast = float(self.spin_contrast.value())
-            adjusted = cv2.convertScaleAbs(img, alpha=contrast, beta=brightness)
-            self.result = adjusted
-        
-        elif method == "Sharpen / Contrast":
-            alpha = self.param_slider.value() / 100.0
-            kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
-            sharp = cv2.filter2D(img, -1, kernel)
-            out = cv2.convertScaleAbs(sharp, alpha=alpha, beta=0)
-            self.result = out
-        
-        else:
-            self.result = img
+            elif method == "Histogram Equalization":
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                eq = cv2.equalizeHist(gray)
+                self.result = eq
+            
+            elif method == "Threshold (Binary)":
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                t = int(self.spin_thresh.value())
+                _, th = cv2.threshold(gray, t, 255, cv2.THRESH_BINARY)
+                self.result = th
+            
+            elif method == "Gaussian Blur":
+                k = int(self.kernel_slider.value())
+                if k % 2 == 0:  # Kernel harus ganjil
+                    k += 1
+                if k < 1: k = 1
+                blur = cv2.GaussianBlur(img, (k, k), 0)
+                self.result = blur
+            
+            elif method == "Median Blur":
+                k = int(self.kernel_slider.value())
+                if k % 2 == 0:  # Kernel harus ganjil
+                    k += 1
+                if k < 1: k = 1
+                med = cv2.medianBlur(img, k)
+                self.result = med
+            
+            elif method == "Bilateral Filter":
+                d = int(self.bilateral_slider.value())
+                bilateral = cv2.bilateralFilter(img, d, 75, 75)
+                self.result = bilateral
+            
+            elif method == "Canny Edge Detection":
+                v = int(self.canny_slider.value())
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                edges = cv2.Canny(gray, v//2, v)
+                self.result = edges
+            
+            elif method == "Sobel Edge Detection":
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                # Sobel dengan kernel default 3x3
+                sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+                sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+                sobel = np.sqrt(sobelx**2 + sobely**2)
+                sobel = np.uint8(255 * sobel / np.max(sobel)) if np.max(sobel) > 0 else np.zeros_like(sobelx, dtype=np.uint8)
+                self.result = sobel
+            
+            elif method == "Laplacian Edge Detection":
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+                laplacian = np.uint8(np.absolute(laplacian))
+                self.result = laplacian
+            
+            elif method == "Morphology (Open)":
+                k = int(self.kernel_slider.value())
+                if k < 1: k = 1
+                kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k, k))
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                _, th = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+                opened = cv2.morphologyEx(th, cv2.MORPH_OPEN, kernel)
+                self.result = opened
+            
+            elif method == "Morphology (Close)":
+                k = int(self.kernel_slider.value())
+                if k < 1: k = 1
+                kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k, k))
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                _, th = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+                closed = cv2.morphologyEx(th, cv2.MORPH_CLOSE, kernel)
+                self.result = closed
+            
+            elif method == "Dilation":
+                k = int(self.kernel_slider.value())
+                if k < 1: k = 1
+                kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k, k))
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                _, th = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+                dilated = cv2.dilate(th, kernel, iterations=1)
+                self.result = dilated
+            
+            elif method == "Erosion":
+                k = int(self.kernel_slider.value())
+                if k < 1: k = 1
+                kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k, k))
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                _, th = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+                eroded = cv2.erode(th, kernel, iterations=1)
+                self.result = eroded
+            
+            elif method == "Brightness/Contrast Adjustment":
+                brightness = float(self.spin_brightness.value())
+                contrast = float(self.spin_contrast.value())
+                adjusted = cv2.convertScaleAbs(img, alpha=contrast, beta=brightness)
+                self.result = adjusted
+            
+            elif method == "Sharpen / Contrast":
+                alpha = self.sharpen_slider.value() / 100.0
+                kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+                sharp = cv2.filter2D(img, -1, kernel)
+                out = cv2.convertScaleAbs(sharp, alpha=alpha, beta=0)
+                self.result = out
+            
+            else:
+                self.result = img
 
-        self.update_previews()
+            self.update_previews()
+            
+        except Exception as e:
+            print(f"Error applying method {method}: {e}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
